@@ -106,30 +106,49 @@ in
           };
       };
 
-      systemd.services.open-webui.postStart =
-        if use_auth then
-          # Wipe all users and add admin user
-          let
-            database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
-            htpasswd = "${pkgs-unstable.apacheHttpd}/bin/htpasswd";
-          in
-          ''
-            sleep 60
-            ${database} "DELETE FROM auth;"
-            ${database} "DELETE FROM user;"
-            ${database} "INSERT INTO auth (id, active, email, password) VALUES ('nix', true, '${cfg.admin.email}', '$(${htpasswd} -bnBC 10 "" ${cfg.admin.password} | tr -d ":\n")');"
-            ${database} "INSERT INTO user (id, name, email, role, profile_image_url, last_active_at, updated_at, created_at) VALUES ('nix', '${cfg.admin.name}', '${cfg.admin.email}', 'admin', '/user.png', 0, 0, 0);"
-          ''
-        else
-          # Remove any existing users (required for auth to be disabled)
-          let
-            database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
-          in
-          ''
-            sleep 60
-            ${database} "DELETE FROM auth;"
-            ${database} "DELETE FROM user;"
-          '';
+      systemd.services.open-webui-admin-update = {
+        description = "Update auth settings for open-webui";
+        wantedBy = [
+          "multi-user.target"
+          "open-webui.service"
+        ];
+        after = [ "open-webui.service" ];
+        bindsTo = [ "open-webui.service" ];
+        serviceConfig = {
+          Type = "exec";
+          DynamicUser = true;
+          Restart = "on-failure";
+          # bounded exponential backoff
+          RestartSec = "1s";
+          RestartMaxDelaySec = "2h";
+          RestartSteps = "10";
+        };
+
+        script =
+          if use_auth then
+            # Wipe all users and add admin user
+            let
+              database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
+              htpasswd = "${pkgs-unstable.apacheHttpd}/bin/htpasswd";
+            in
+            ''
+              sleep 5
+              ${database} "DELETE FROM auth;"
+              ${database} "DELETE FROM user;"
+              ${database} "INSERT INTO auth (id, active, email, password) VALUES ('nix', true, '${cfg.admin.email}', '$(${htpasswd} -bnBC 10 "" ${cfg.admin.password} | tr -d ":\n")');"
+              ${database} "INSERT INTO user (id, name, email, role, profile_image_url, last_active_at, updated_at, created_at) VALUES ('nix', '${cfg.admin.name}', '${cfg.admin.email}', 'admin', '/user.png', 0, 0, 0);"
+            ''
+          else
+            # Remove any existing users (required for auth to be disabled)
+            let
+              database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
+            in
+            ''
+              sleep 5
+              ${database} "DELETE FROM auth;"
+              ${database} "DELETE FROM user;"
+            '';
+      };
 
       services.searx = {
         enable = cfg.search.enable;
