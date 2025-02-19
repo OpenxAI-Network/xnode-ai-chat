@@ -84,6 +84,8 @@ in
       services.open-webui = {
         enable = true;
         package = pkgs-unstable.open-webui;
+        host = "0.0.0.0";
+        port = 8080;
         environment =
           {
             ANONYMIZED_TELEMETRY = "False";
@@ -116,10 +118,11 @@ in
         bindsTo = [ "open-webui.service" ];
         serviceConfig = {
           Type = "exec";
-          DynamicUser = true;
+          User = "root";
+          Group = "root";
           Restart = "on-failure";
           # bounded exponential backoff
-          RestartSec = "1s";
+          RestartSec = "5s";
           RestartMaxDelaySec = "2h";
           RestartSteps = "10";
         };
@@ -132,7 +135,6 @@ in
               htpasswd = "${pkgs-unstable.apacheHttpd}/bin/htpasswd";
             in
             ''
-              sleep 5
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
               ${database} "INSERT INTO auth (id, active, email, password) VALUES ('nix', true, '${cfg.admin.email}', '$(${htpasswd} -bnBC 10 "" ${cfg.admin.password} | tr -d ":\n")');"
@@ -144,7 +146,6 @@ in
               database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
             in
             ''
-              sleep 5
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
             '';
