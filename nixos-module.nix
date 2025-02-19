@@ -135,6 +135,7 @@ in
               htpasswd = "${pkgs-unstable.apacheHttpd}/bin/htpasswd";
             in
             ''
+              chmod 777 /var/lib/open-webui/webui.db
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
               ${database} "INSERT INTO auth (id, active, email, password) VALUES ('nix', true, '${cfg.admin.email}', '$(${htpasswd} -bnBC 10 "" ${cfg.admin.password} | tr -d ":\n")');"
@@ -146,6 +147,7 @@ in
               database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
             in
             ''
+              chmod 777 /var/lib/open-webui/webui.db
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
             '';
