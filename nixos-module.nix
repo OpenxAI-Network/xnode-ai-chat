@@ -1,9 +1,4 @@
 {
-  nixpkgs,
-  nixpkgs-stable,
-  ...
-}:
-{
   config,
   lib,
   pkgs,
@@ -11,8 +6,6 @@
 }:
 let
   cfg = config.services.xnode-ai-chat;
-  pkgs-unstable = import nixpkgs { system = pkgs.system; };
-  pkgs-stable = import nixpkgs-stable { system = pkgs.system; };
 in
 {
   options = {
@@ -75,19 +68,38 @@ in
       use_auth = cfg.admin.email != null && cfg.admin.password != null;
     in
     {
+      nixpkgs.config.allowUnfree = true;
+
+      systemd.services.ollama.serviceConfig.DynamicUser = lib.mkForce false;
+      systemd.services.ollama.serviceConfig.ProtectHome = lib.mkForce false;
+      systemd.services.ollama.serviceConfig.StateDirectory = [ "ollama/models" ];
       services.ollama = {
         enable = true;
-        package = pkgs-unstable.ollama;
-        loadModels = lib.optional (cfg.defaultModel != null) cfg.defaultModel;
+        user = "ollama";
+        loadModels = lib.mkIf (cfg.defaultModel != null) [ cfg.defaultModel ];
       };
+      systemd.services.ollama-model-loader.serviceConfig.User = "ollama";
+      systemd.services.ollama-model-loader.serviceConfig.Group = "ollama";
+      systemd.services.ollama-model-loader.serviceConfig.DynamicUser = lib.mkForce false;
 
+      users = {
+        users."open-webui" = {
+          isSystemUser = true;
+          group = "open-webui";
+        };
+        groups."open-webui" = { };
+      };
+      systemd.services.open-webui.serviceConfig.User = lib.mkForce "open-webui";
+      systemd.services.open-webui.serviceConfig.Group = lib.mkForce "open-webui";
+      systemd.services.open-webui.serviceConfig.DynamicUser = lib.mkForce false;
+      systemd.services.open-webui.serviceConfig.ProtectHome = lib.mkForce false;
       services.open-webui = {
         enable = true;
-        package = pkgs-unstable.open-webui;
         host = "0.0.0.0";
         port = 8080;
-        environment =
+        environment = lib.mkMerge [
           {
+            WEBUI_URL = "http://${config.networking.hostName}.container:8080";
             ANONYMIZED_TELEMETRY = "False";
             DO_NOT_TRACK = "True";
             SCARF_NO_ANALYTICS = "True";
@@ -95,17 +107,18 @@ in
             ENV = "prod";
             ENABLE_SIGNUP = "False";
           }
-          // lib.attrsets.optionalAttrs (cfg.defaultModel != null) {
+          (lib.mkIf (cfg.defaultModel != null) {
             DEFAULT_MODELS = cfg.defaultModel;
-          }
-          // lib.attrsets.optionalAttrs (!use_auth) {
+          })
+          (lib.mkIf (!use_auth) {
             WEBUI_AUTH = "False";
-          }
-          // lib.attrsets.optionalAttrs cfg.search.enable {
+          })
+          (lib.mkIf cfg.search.enable {
             ENABLE_RAG_WEB_SEARCH = "True";
             RAG_WEB_SEARCH_ENGINE = "searxng";
             SEARXNG_QUERY_URL = "http://localhost:8888/search?q=<query>";
-          };
+          })
+        ];
       };
 
       systemd.services.open-webui-admin-update = {
@@ -118,23 +131,22 @@ in
         bindsTo = [ "open-webui.service" ];
         serviceConfig = {
           Type = "exec";
-          User = "root";
-          Group = "root";
+          User = "open-webui";
+          Group = "open-webui";
           Restart = "on-failure";
-          # bounded exponential backoff
           RestartSec = "5s";
           RestartMaxDelaySec = "2h";
           RestartSteps = "10";
         };
-
         script =
           if use_auth then
             # Wipe all users and add admin user
             let
-              database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
-              htpasswd = "${pkgs-unstable.apacheHttpd}/bin/htpasswd";
+              database = "${pkgs.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
+              htpasswd = "${pkgs.apacheHttpd}/bin/htpasswd";
             in
             ''
+              chmod 777 /var/lib/open-webui/webui.db
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
               ${database} "INSERT INTO auth (id, active, email, password) VALUES ('nix', true, '${cfg.admin.email}', '$(${htpasswd} -bnBC 10 "" ${cfg.admin.password} | tr -d ":\n")');"
@@ -143,9 +155,10 @@ in
           else
             # Remove any existing users (required for auth to be disabled)
             let
-              database = "${pkgs-unstable.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
+              database = "${pkgs.sqlite}/bin/sqlite3 /var/lib/open-webui/webui.db";
             in
             ''
+              chmod 777 /var/lib/open-webui/webui.db
               ${database} "DELETE FROM auth;"
               ${database} "DELETE FROM user;"
             '';
@@ -153,7 +166,6 @@ in
 
       services.searx = {
         enable = cfg.search.enable;
-        package = pkgs-unstable.searxng;
         settings = {
           server = {
             port = 8888;
