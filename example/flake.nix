@@ -5,6 +5,15 @@
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
   };
 
+  nixConfig = {
+    extra-substituters = [
+      "https://openxai.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "openxai.cachix.org-1:3evd2khRVc/2NiGwVmypAF4VAklFmOpMuNs1K28bMQE="
+    ];
+  };
+
   outputs = inputs: {
     nixosConfigurations.container = inputs.nixpkgs.lib.nixosSystem {
       specialArgs = {
