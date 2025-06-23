@@ -1,6 +1,6 @@
 {
   inputs = {
-    xnode-manager.url = "github:Openmesh-Network/xnode-manager";
+    xnode-manager.url = "github:Openmesh-Network/xnode-manager/dev";
     xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat";
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
   };
