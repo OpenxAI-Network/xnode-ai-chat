@@ -114,8 +114,8 @@ in
             WEBUI_AUTH = "False";
           })
           (lib.mkIf cfg.search.enable {
-            ENABLE_RAG_WEB_SEARCH = "True";
-            RAG_WEB_SEARCH_ENGINE = "searxng";
+            ENABLE_WEB_SEARCH = "True";
+            WEB_SEARCH_ENGINE = "searxng";
             SEARXNG_QUERY_URL = "http://localhost:8888/search?q=<query>";
           })
         ];
