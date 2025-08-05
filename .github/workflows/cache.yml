@@ -24,5 +24,8 @@ jobs:
           name: openxai
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
 
-      - name: Upload derivation to Cachix
+      - name: Upload base derivation to Cachix
         run: nix build ./example#nixosConfigurations.container.config.system.build.toplevel --accept-flake-config --print-out-paths | cachix push openxai
+
+      - name: Upload cuda derivation to Cachix
+        run: nix build ./example/cuda#nixosConfigurations.container.config.system.build.toplevel --accept-flake-config --print-out-paths | cachix push openxai
