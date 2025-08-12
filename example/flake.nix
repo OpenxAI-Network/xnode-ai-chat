@@ -33,11 +33,6 @@
           services.xnode-ai-chat = {
             enable = true;
             defaultModel = "deepseek-r1";
-            admin = {
-              name = "Samuel";
-              email = "plopmenz@gmail.com";
-              password = "demo";
-            };
           };
 
           networking = {
