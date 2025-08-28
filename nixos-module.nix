@@ -21,6 +21,17 @@ in
         '';
       };
 
+      autoGenerate = {
+        enable = lib.mkOption {
+          type = lib.types.bool;
+          default = true;
+          example = false;
+          description = ''
+            Enable auto generation. On slow models this will have a significant performance impact.
+          '';
+        };
+      };
+
       search = {
         enable = lib.mkOption {
           type = lib.types.bool;
@@ -75,6 +86,12 @@ in
           ENABLE_SIGNUP = "False";
           WEBUI_AUTH = "False";
         }
+        (lib.mkIf (!cfg.autoGenerate.enable) {
+          ENABLE_TITLE_GENERATION = "False";
+          ENABLE_FOLLOW_UP_GENERATION = "False";
+          ENABLE_AUTOCOMPLETE_GENERATION = "False";
+          ENABLE_TAGS_GENERATION = "False";
+        })
         (lib.mkIf (cfg.defaultModel != null) {
           DEFAULT_MODELS = cfg.defaultModel;
         })

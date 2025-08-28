@@ -3,7 +3,7 @@ name: Cache
 on:
   push:
     branches:
-      - main
+      - cache
 
 jobs:
   build-and-upload:

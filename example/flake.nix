@@ -1,7 +1,7 @@
 {
   inputs = {
-    xnode-manager.url = "github:Openmesh-Network/xnode-manager/dev";
-    xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat";
+    xnode-manager.url = "github:Openmesh-Network/xnode-manager";
+    xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat/cache";
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
   };
 
@@ -33,6 +33,7 @@
           services.xnode-ai-chat = {
             enable = true;
             defaultModel = "deepseek-r1";
+            autoGenerate.enable = false;
           };
 
           networking = {
