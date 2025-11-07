@@ -3,6 +3,8 @@
     xnode-manager.url = "github:Openmesh-Network/xnode-manager";
     xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat/cache";
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
+    host.url = "path:/etc/nixos";
+    host-nixpkgs.follows = "host/nixpkgs";
   };
 
   nixConfig = {
@@ -35,6 +37,14 @@
         inputs.xnode-ai-chat.nixosModules.default
         (
           { pkgs, ... }@args:
+          let
+            host-pkgs = import inputs.host-nixpkgs {
+              system = pkgs.system;
+              config = {
+                allowUnfree = true;
+              };
+            };
+          in
           {
             # START USER CONFIG
             services.xnode-ai-chat.defaultModel = "deepseek-r1";
@@ -51,6 +61,7 @@
             };
             hardware.nvidia.open = true;
             services.xserver.videoDrivers = [ "nvidia" ];
+            hardware.nvidia.package = host-pkgs.linuxPackages.nvidiaPackages.stable;
 
             networking.firewall.allowedTCPPorts = [
               8080
