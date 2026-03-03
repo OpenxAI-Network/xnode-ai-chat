@@ -1,6 +1,6 @@
 {
   inputs = {
-    xnode-manager.url = "github:Openmesh-Network/xnode-manager";
+    xnodeos.url = "github:Openmesh-Network/xnodeos";
     xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat/cache";
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
   };
@@ -20,27 +20,28 @@
         inherit inputs;
       };
       modules = [
-        inputs.xnode-manager.nixosModules.container
+        inputs.xnodeos.nixosModules.container
         {
-          services.xnode-container.xnode-config = {
-            host-platform = ./xnode-config/host-platform;
-            state-version = ./xnode-config/state-version;
-            hostname = ./xnode-config/hostname;
-          };
+          services.xnode-container.xnode-config = ./xnode-config;
         }
         inputs.xnode-ai-chat.nixosModules.default
-        {
-          services.xnode-ai-chat = {
-            enable = true;
-            defaultModel = "deepseek-r1";
-            autoGenerate.enable = false;
-          };
+        (
+          { pkgs, ... }@args:
+          {
+            # START USER CONFIG
+            services.xnode-ai-chat.defaultModel = "deepseek-r1";
+            # END USER CONFIG
 
-          networking = {
-            hostName = "xnode-ai-chat";
-            firewall.allowedTCPPorts = [ 8080 ];
-          };
-        }
+            services.xnode-ai-chat = {
+              enable = true;
+              autoGenerate.enable = false;
+            };
+
+            services.ollama.package = pkgs.ollama-cpu;
+
+            networking.firewall.allowedTCPPorts = [ 8080 ];
+          }
+        )
       ];
     };
   };

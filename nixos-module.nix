@@ -56,9 +56,6 @@ in
       user = "ollama";
       loadModels = lib.mkIf (cfg.defaultModel != null) [ cfg.defaultModel ];
     };
-    systemd.services.ollama-model-loader.serviceConfig.User = "ollama";
-    systemd.services.ollama-model-loader.serviceConfig.Group = "ollama";
-    systemd.services.ollama-model-loader.serviceConfig.DynamicUser = lib.mkForce false;
 
     users = {
       users."open-webui" = {
