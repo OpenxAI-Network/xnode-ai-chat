@@ -1,6 +1,6 @@
 {
   inputs = {
-    xnode-manager.url = "github:Openmesh-Network/xnode-manager";
+    xnodeos.url = "github:Openmesh-Network/xnodeos";
     xnode-ai-chat.url = "github:OpenxAI-Network/xnode-ai-chat/cache";
     nixpkgs.follows = "xnode-ai-chat/nixpkgs";
     host.url = "path:/etc/nixos";
@@ -26,13 +26,9 @@
         inherit inputs;
       };
       modules = [
-        inputs.xnode-manager.nixosModules.container
+        inputs.xnodeos.nixosModules.container
         {
-          services.xnode-container.xnode-config = {
-            host-platform = ./xnode-config/host-platform;
-            state-version = ./xnode-config/state-version;
-            hostname = ./xnode-config/hostname;
-          };
+          services.xnode-container.xnode-config = ../xnode-config;
         }
         inputs.xnode-ai-chat.nixosModules.default
         (
@@ -52,7 +48,7 @@
 
             services.xnode-ai-chat.enable = true;
 
-            services.ollama.acceleration = "cuda";
+            services.ollama.package = pkgs.ollama-cuda;
             hardware.graphics = {
               enable = true;
               extraPackages = [
